@@ -241,7 +241,7 @@ void initBLE() {
 void sendBLEData() {
   if (!deviceConnected) return;
   
-  StaticJsonDocument<512> doc;
+  JsonDocument doc;
   
   // Add engine data
   doc["rpm"] = espnow_data_received.rpm;
@@ -429,26 +429,28 @@ void setup() {
 
 // ================= MAIN LOOP =================
 void loop() {
-  // Process received engine data
-  processReceivedData();
-  
-  // Handle BLE disconnection
+  // Handle BLE connection state
   if (!deviceConnected && oldDeviceConnected) {
     delay(500);
     pServer->startAdvertising();
-    Serial.println("BLE advertising restarted");
+    Serial.println("Start advertising");
     oldDeviceConnected = deviceConnected;
   }
   
-  // Handle BLE connection
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
   }
+  
+  // Process received engine data
+  processReceivedData();
   
   // Display statistics periodically
 #if DEBUG
   displayStats();
 #endif
+  
+  // Add your custom code here
+  // For example: read sensors, control outputs, etc.
   
   delay(10); // Small delay to prevent watchdog issues
 }
