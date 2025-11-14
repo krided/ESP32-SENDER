@@ -12,17 +12,14 @@
 
 #include <esp_now.h>
 #include <WiFi.h>
-#include <Ticker.h>
 #include "Config.h"
-#include <SPI.h>
-#include <Wire.h>
 #if SCREEN
+#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #endif
 #include <BLEDevice.h>
 #include <BLEServer.h>
-#include <BLEUtils.h>
 #include <BLE2902.h>
 #include <ArduinoJson.h>
 
@@ -88,8 +85,8 @@ uint8_t espnow_receiver_mac[] = ESPNOW_RECEIVER_MAC;
 // ESP-NOW send status
 volatile bool espnow_send_ready = true;
 
-// Ticker for periodic sending
-Ticker espnow_send_ticker;
+// Timing for periodic sending
+unsigned long lastEspnowSend = 0;
 
 // Statistics
 uint32_t packets_received = 0;
@@ -106,7 +103,7 @@ BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic = NULL;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
-Ticker bleUpdateTicker;
+unsigned long lastBleUpdate = 0;
 
 // BLE UUIDs - używamy standardowych
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
@@ -391,9 +388,6 @@ void setup() {
   
   // Initialize BLE
   initBLE();
-  
-  // Start periodic BLE data sending
-  bleUpdateTicker.attach(0.1, sendBLEData);  // 10Hz update rate
 
   // Initialize SCREEN
 #if SCREEN
@@ -420,9 +414,6 @@ void setup() {
   espnow_data_to_send.espin_7 = DEFAULT_ESPIN_VALUE;
   espnow_data_to_send.espin_8 = DEFAULT_ESPIN_VALUE;
   
-  // Start periodic ESPin data sending
-  espnow_send_ticker.attach(1.0 / ESPNOW_DATA_SEND_RATE, onESPNowSendTimer);
-  
   Serial.println("ESP32-SENDER initialized successfully!");
   Serial.println("Waiting for data from main ESP32...\n");
 }
@@ -439,6 +430,18 @@ void loop() {
   
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
+  }
+  
+  // Send BLE data at 10Hz (100ms interval)
+  if (millis() - lastBleUpdate >= 100) {
+    sendBLEData();
+    lastBleUpdate = millis();
+  }
+  
+  // Send ESP-NOW data periodically
+  if (millis() - lastEspnowSend >= (1000 / ESPNOW_DATA_SEND_RATE)) {
+    onESPNowSendTimer();
+    lastEspnowSend = millis();
   }
   
   // Process received engine data
