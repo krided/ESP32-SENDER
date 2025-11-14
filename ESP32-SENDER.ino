@@ -114,10 +114,6 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 Ticker bleUpdateTicker;
 
-// To improve compatibility with iOS/Bluefy (small MTU),
-// we send notifications in small chunks and reassemble on the client.
-#define BLE_CHUNK_SIZE 20
-
 // BLE UUIDs - używamy standardowych
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -312,15 +308,9 @@ void sendBLEData() {
   
   String jsonString;
   serializeJson(doc, jsonString);
-
-  // Notify in small chunks to avoid MTU truncation issues on iOS/Bluefy
-  const uint8_t *dataPtr = (const uint8_t*) jsonString.c_str();
-  size_t totalLen = jsonString.length();
-  for (size_t offset = 0; offset < totalLen; offset += BLE_CHUNK_SIZE) {
-    size_t chunkLen = (totalLen - offset) < BLE_CHUNK_SIZE ? (totalLen - offset) : BLE_CHUNK_SIZE;
-    pCharacteristic->setValue(dataPtr + offset, chunkLen);
-    pCharacteristic->notify();
-  }
+  
+  pCharacteristic->setValue(jsonString.c_str());
+  pCharacteristic->notify();
 }
 
 // ================= DATA PROCESSING =================
