@@ -31,16 +31,20 @@ The app UI and BLE logic are identical on iOS/Android.
 - Characteristic: `beb5483e-36e1-4688-b7f5-ea07361b26a8`
 - App auto-scans, connects, and subscribes to JSON notifications
 
-## 5) Build iOS with Codemagic (no Mac needed)
-1. Push this repo (or only `flutter-app/`) to GitHub
-2. Sign in to https://codemagic.io and add the repo
-3. Codemagic detects `codemagic.yaml`
-4. In workflow settings (UI), add iOS code signing (Apple ID, certificates, provisioning profile)
-5. Start build → Download `.ipa` artifact when finished
+## 5) Build iOS without Codemagic (GitHub Actions)
+Option A — GitHub Actions (recommended if Codemagic fails):
+1. Push repo to GitHub
+2. In GitHub → Actions → find workflow "iOS Unsigned (Flutter)" → Run workflow
+3. After it finishes, download artifact `E46-Speeduino-unsigned` → `.ipa`
+
+Option B — Codemagic (alternative):
+1. Add repo to https://codemagic.io
+2. Use workflow from `codemagic.yaml` (`ios_unsigned` or `ios_release`)
+3. Download `.ipa` from artifacts
 
 ### iPhone install without Developer Program
 - Use Sideloadly or AltStore on Windows to install the `.ipa`
-- Or install to TestFlight/App Store with a paid developer account
+- Or publish via TestFlight/App Store with a paid developer account
 
 ## 6) Customization
 - Colors/UI: edit `lib/main.dart`, `lib/ui/widgets/*`
