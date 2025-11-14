@@ -246,8 +246,8 @@ void sendBLEData() {
   
   // Add engine data
   doc["rpm"] = espnow_data_received.rpm;
-  doc["clt"] = espnow_data_received.clt - 40;
-  doc["iat"] = espnow_data_received.iat - 40;
+  doc["clt"] = (int8_t)(espnow_data_received.clt - 40);
+  doc["iat"] = (int8_t)(espnow_data_received.iat - 40);
   
   // Calculate scaled TPS
   int tps_raw = espnow_data_received.tps;
@@ -257,10 +257,10 @@ void sendBLEData() {
   doc["tps"] = tps_scaled;
   
   doc["map"] = espnow_data_received.map * 4;
-  doc["battery"] = String(espnow_data_received.battery / 10.0, 1);
-  doc["advance"] = espnow_data_received.advance - 40;
-  doc["pulsewidth"] = String(espnow_data_received.pulsewidth / 10.0, 1);
-  doc["o2"] = espnow_data_received.o2;
+  doc["battery"] = espnow_data_received.battery / 10.0;
+  doc["advance"] = (int8_t)(espnow_data_received.advance - 40);
+  doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;
+  doc["o2"] = espnow_data_received.o2 / 10.0;
   doc["boostDuty"] = espnow_data_received.boostDuty;
   doc["boostTarget"] = espnow_data_received.boostTarget * 2;
   
