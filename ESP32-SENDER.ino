@@ -99,6 +99,7 @@ uint32_t last_stats_time = 0;
 
 // ESP-NOW connection monitoring
 uint32_t last_espnow_packet_time = 0;
+bool is_espnow_connected = false;
 #define ESPNOW_TIMEOUT_MS 3000  // 3 seconds without data = connection lost
 
 // END DATA
@@ -149,6 +150,7 @@ extern "C" void onESPNowDataReceived(const esp_now_recv_info *recv_info, const u
     espnow_data_available = true;
     packets_received++;
     last_espnow_packet_time = millis();
+    is_espnow_connected = true; // Mark as connected on first successful packet
     
 #if DEBUG
     Serial.print("Received from: ");
@@ -248,34 +250,50 @@ void sendBLEData() {
   if (!deviceConnected) return;
   
   JsonDocument doc;
-  
-  // Conversions based on Serial3toBMWcan_ESP32_BASIC.ino sender code
-  doc["rpm"] = espnow_data_received.rpm;  // Direct uint16_t
-  doc["clt"] = espnow_data_received.clt - 40;  // CLT offset: 122 - 40 = 82°C ✓
-  doc["iat"] = espnow_data_received.iat - 40;  // IAT offset: 26 - 40 = -14°C ✓
-  doc["tps"] = espnow_data_received.tps / 2.0;  // TPS: 0-200 range / 2 = 0-100%: 86/2 = 43% ✓
-  
-  // MAP: Sender compresses with >> 2 (divide by 4), so we multiply by 4
-  // espnow_data_to_send.map = (uint8_t)(currentStatus.MAP >> 2);
-  int map_kpa = espnow_data_received.map * 4;  // 18 * 4 = 72 kPa (close to 74 with rounding)
-  float map_abs_bar = map_kpa / 100.0;
-  float map_gauge_bar = map_abs_bar - 1;
-  doc["map"] = map_gauge_bar;
 
-  doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
+  // Check ESP-NOW connection status
+  is_espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
+  doc["espnowConnected"] = is_espnow_connected;
+
+  if (is_espnow_connected) {
+    // Conversions based on Serial3toBMWcan_ESP32_BASIC.ino sender code
+    doc["rpm"] = espnow_data_received.rpm;  // Direct uint16_t
+    doc["clt"] = espnow_data_received.clt - 40;  // CLT offset: 122 - 40 = 82°C ✓
+    doc["iat"] = espnow_data_received.iat - 40;  // IAT offset: 26 - 40 = -14°C ✓
+    doc["tps"] = espnow_data_received.tps / 2.0;  // TPS: 0-200 range / 2 = 0-100%: 86/2 = 43% ✓
+    
+    // MAP: Sender compresses with >> 2 (divide by 4), so we multiply by 4
+    // espnow_data_to_send.map = (uint8_t)(currentStatus.MAP >> 2);
+    int map_kpa = espnow_data_received.map * 4;  // 18 * 4 = 72 kPa (close to 74 with rounding)
+    float map_abs_bar = map_kpa / 100.0;
+    float map_gauge_bar = map_abs_bar - 1;
+    doc["map"] = map_gauge_bar;
+
+    doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
+    
+    // Advance: Speeduino sends as int8_t (already in degrees, can be negative)
+    // currentStatus.advance is copied directly, just cast to signed
+    doc["advance"] = (int8_t)espnow_data_received.advance;  // Cast to signed for negative values
+    
+    doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;  // PW1: uint16 / 10 for ms
+    doc["o2"] = espnow_data_received.o2 / 10.0;  // O2: /10 for AFR
+    doc["boostDuty"] = espnow_data_received.boostDuty;  // Direct percentage (0-100)
+    doc["boostTarget"] = espnow_data_received.boostTarget * 2 / 100.0;  // boostTarget * 2 kPa -> BAR
+  } else {
+    // Send default/zero values if not connected
+    doc["rpm"] = 0;
+    doc["clt"] = -40;
+    doc["iat"] = -40;
+    doc["tps"] = 0;
+    doc["map"] = -1.0;
+    doc["battery"] = 0;
+    doc["advance"] = 0;
+    doc["pulsewidth"] = 0;
+    doc["o2"] = 0;
+    doc["boostDuty"] = 0;
+    doc["boostTarget"] = 0;
+  }
   
-  // Advance: Speeduino sends as int8_t (already in degrees, can be negative)
-  // currentStatus.advance is copied directly, just cast to signed
-  doc["advance"] = (int8_t)espnow_data_received.advance;  // Cast to signed for negative values
-  
-  doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;  // PW1: uint16 / 10 for ms
-  doc["o2"] = espnow_data_received.o2 / 10.0;  // O2: /10 for AFR
-  doc["boostDuty"] = espnow_data_received.boostDuty;  // Direct percentage (0-100)
-  doc["boostTarget"] = espnow_data_received.boostTarget * 2 / 100.0;  // boostTarget * 2 kPa -> BAR
-  
-  // ESP-NOW connection status
-  bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
-  doc["espnowConnected"] = espnow_connected;
   doc["packetsReceived"] = packets_received;
   
   // Add warning thresholds
@@ -389,7 +407,7 @@ void displayStats() {
 // ================= SETUP =================
 void setup() {
   // Initialize Serial
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
   Serial.println("\n\n====================================");
   Serial.println("ESP32-SENDER starting...");
@@ -452,6 +470,16 @@ void loop() {
   
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = deviceConnected;
+  }
+
+  // Check for ESP-NOW timeout and try to re-init if necessary
+  if (is_espnow_connected && (millis() - last_espnow_packet_time > ESPNOW_TIMEOUT_MS)) {
+    is_espnow_connected = false;
+    packets_received = 0; // Reset counter on disconnect
+    Serial.println("ESP-NOW connection lost! Re-initializing...");
+    esp_now_deinit();
+    delay(100);
+    initESPNow();
   }
   
   // Process received engine data

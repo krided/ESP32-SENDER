@@ -371,7 +371,7 @@
                 elements.vRpm.textContent = data.rpm || 0;
                 elements.vClt.textContent = data.clt || 0;  // Already in °C
                 elements.vTps.textContent = (data.tps || 0).toFixed(1);  // %
-                elements.vMap.textContent = mapKpa;
+                elements.vMap.textContent = (data.map || 0).toFixed(2); // Already gauge pressure in BAR
                 elements.vBattery.textContent = (data.battery || 0).toFixed(1);  // V
                 elements.vAdvance.textContent = data.advance || 0;  // °
 
@@ -386,7 +386,8 @@
                 elements.gRpm.classList.toggle('warning', data.rpm >= (data.wrpm || 6800));
                 elements.gClt.classList.toggle('warning', data.clt >= (data.wclt || 95));
                 elements.gTps.classList.toggle('warning', data.tps >= (data.wtps || 95));
-                elements.gMap.classList.toggle('warning', mapKpa >= (data.wmap || 250));
+                // Warning for MAP is based on absolute kPa from firmware
+                elements.gMap.classList.toggle('warning', (data.map + 1) * 100 >= (data.wmap || 250));
                 elements.gAdvance.classList.toggle('warning', data.advance >= (data.wadvance || 35));
 
             } catch (error) {
