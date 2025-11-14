@@ -249,18 +249,27 @@ void sendBLEData() {
   
   JsonDocument doc;
   
-  // Add raw engine data from Speeduino (no conversions)
-  doc["rpm"] = espnow_data_received.rpm;
-  doc["clt"] = espnow_data_received.clt;
-  doc["iat"] = espnow_data_received.iat;
-  doc["tps"] = espnow_data_received.tps;
-  doc["map"] = espnow_data_received.map;
-  doc["battery"] = espnow_data_received.battery;
-  doc["advance"] = espnow_data_received.advance;
-  doc["pulsewidth"] = espnow_data_received.pulsewidth;
-  doc["o2"] = espnow_data_received.o2;
-  doc["boostDuty"] = espnow_data_received.boostDuty;
-  doc["boostTarget"] = espnow_data_received.boostTarget;
+  // Conversions based on Serial3toBMWcan_ESP32_BASIC.ino sender code
+  doc["rpm"] = espnow_data_received.rpm;  // Direct uint16_t
+  doc["clt"] = espnow_data_received.clt - 40;  // CLT offset: 122 - 40 = 82°C ✓
+  doc["iat"] = espnow_data_received.iat - 40;  // IAT offset: 26 - 40 = -14°C ✓
+  doc["tps"] = espnow_data_received.tps / 2.0;  // TPS: 0-200 range / 2 = 0-100%: 86/2 = 43% ✓
+  
+  // MAP: Sender compresses with >> 2 (divide by 4), so we multiply by 4
+  // espnow_data_to_send.map = (uint8_t)(currentStatus.MAP >> 2);
+  int map_kpa = espnow_data_received.map * 4;  // 18 * 4 = 72 kPa (close to 74 with rounding)
+  doc["map"] = map_kpa / 100.0;  // Convert to BAR: 72/100 = 0.72 bar
+  
+  doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
+  
+  // Advance: Speeduino sends as int8_t (can be negative), stored in uint8_t
+  // currentStatus.advance is already in degrees from Speeduino
+  doc["advance"] = (int8_t)espnow_data_received.advance - 40;  // Cast to signed, then offset
+  
+  doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;  // PW1: uint16 / 10 for ms
+  doc["o2"] = espnow_data_received.o2 / 10.0;  // O2: /10 for AFR
+  doc["boostDuty"] = espnow_data_received.boostDuty;  // Direct percentage (0-100)
+  doc["boostTarget"] = espnow_data_received.boostTarget * 2 / 100.0;  // boostTarget * 2 kPa -> BAR
   
   // ESP-NOW connection status
   bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
