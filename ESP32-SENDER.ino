@@ -249,32 +249,18 @@ void sendBLEData() {
   
   JsonDocument doc;
   
-  // Add engine data
+  // Add raw engine data from Speeduino (no conversions)
   doc["rpm"] = espnow_data_received.rpm;
-  doc["clt"] = (int8_t)(espnow_data_received.clt - 40);
-  doc["iat"] = (int8_t)(espnow_data_received.iat - 40);
-  
-  // Calculate scaled TPS
-  int tps_raw = espnow_data_received.tps;
-  int tps_scaled = (int)(((tps_raw + TPS_OFFSET) * TPS_SCALE_NUMERATOR) / (float)TPS_SCALE_DENOMINATOR);
-  if (tps_scaled < 0) tps_scaled = 0;
-  if (tps_scaled > 100) tps_scaled = 100;
-  doc["tps"] = tps_scaled;
-  
-  // Normalize MAP to absolute kPa
-  // If sender encoded gauge kPa in signed int8 (stored in uint8), recover absolute as 100 + signed
-  // If sender already provided absolute kPa in 0..255, keep as-is
-  {
-    int8_t map_signed = (int8_t)espnow_data_received.map;
-    int16_t map_kpa = (map_signed < 0) ? (100 + map_signed) : (int16_t)espnow_data_received.map;
-    doc["map"] = map_kpa; // absolute kPa for consistent UI logic
-  }
-  doc["battery"] = espnow_data_received.battery / 10.0;
-  doc["advance"] = (int8_t)(espnow_data_received.advance - 40);
-  doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;
-  doc["o2"] = espnow_data_received.o2 / 10.0;
-  doc["boostDuty"] = (int8_t)espnow_data_received.boostDuty;
-  doc["boostTarget"] = (int8_t)espnow_data_received.boostTarget;
+  doc["clt"] = espnow_data_received.clt;
+  doc["iat"] = espnow_data_received.iat;
+  doc["tps"] = espnow_data_received.tps;
+  doc["map"] = espnow_data_received.map;
+  doc["battery"] = espnow_data_received.battery;
+  doc["advance"] = espnow_data_received.advance;
+  doc["pulsewidth"] = espnow_data_received.pulsewidth;
+  doc["o2"] = espnow_data_received.o2;
+  doc["boostDuty"] = espnow_data_received.boostDuty;
+  doc["boostTarget"] = espnow_data_received.boostTarget;
   
   // ESP-NOW connection status
   bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
@@ -306,32 +292,25 @@ void processReceivedData() {
   // For example: display on LCD, log to SD card, control external devices, etc.
   
 #if DEBUG
-  // Display received data every second
+  // Display ALL received RAW data every second
   static uint32_t last_display = 0;
   if (millis() - last_display > 1000) {
-    Serial.println("\n===== Engine Data =====");
+    Serial.println("\n========== RAW Speeduino Data ==========");
+    Serial.print("Timestamp: "); Serial.println(espnow_data_received.timestamp);
     Serial.print("RPM: "); Serial.println(espnow_data_received.rpm);
-    Serial.print("PW: "); Serial.print(espnow_data_received.pulsewidth / 10.0); Serial.println(" ms");
-    Serial.print("CLT: "); Serial.print(espnow_data_received.clt - 40); Serial.println(" °C");
-    Serial.print("IAT: "); Serial.print(espnow_data_received.iat - 40); Serial.println(" °C");
-    Serial.print("TPS: ");
-    {
-      int tps_raw = espnow_data_received.tps;
-      int tps_scaled = (int)(((tps_raw + TPS_OFFSET) * TPS_SCALE_NUMERATOR) / (float)TPS_SCALE_DENOMINATOR);
-      if (tps_scaled < 0) tps_scaled = 0;
-      if (tps_scaled > 100) tps_scaled = 100;
-      Serial.print(tps_scaled);
-    }
-    Serial.println(" %");
-    {
-      int8_t map_signed = (int8_t)espnow_data_received.map;
-      int16_t map_kpa = (map_signed < 0) ? (100 + map_signed) : (int16_t)espnow_data_received.map;
-      float map_bar_gauge = (map_kpa - 100) / 100.0f;
-      Serial.print("MAP: "); Serial.print(map_kpa); Serial.print(" kPa ( "); Serial.print(map_bar_gauge, 2); Serial.println(" bar )");
-    }
-    Serial.print("Battery: "); Serial.print(espnow_data_received.battery / 10.0); Serial.println(" V");
-    Serial.print("Advance: "); Serial.println(espnow_data_received.advance - 40);
-    Serial.println("======================");
+    Serial.print("CLT (raw): "); Serial.println(espnow_data_received.clt);
+    Serial.print("IAT (raw): "); Serial.println(espnow_data_received.iat);
+    Serial.print("TPS (raw): "); Serial.println(espnow_data_received.tps);
+    Serial.print("MAP (raw): "); Serial.println(espnow_data_received.map);
+    Serial.print("Battery (raw): "); Serial.println(espnow_data_received.battery);
+    Serial.print("O2 (raw): "); Serial.println(espnow_data_received.o2);
+    Serial.print("Advance (raw): "); Serial.println(espnow_data_received.advance);
+    Serial.print("Pulsewidth (raw): "); Serial.println(espnow_data_received.pulsewidth);
+    Serial.print("Boost Duty (raw): "); Serial.println(espnow_data_received.boostDuty);
+    Serial.print("Boost Target (raw): "); Serial.println(espnow_data_received.boostTarget);
+    Serial.print("Status Flags: 0x"); Serial.println(espnow_data_received.statusFlags, HEX);
+    Serial.print("Error Flags: 0x"); Serial.println(espnow_data_received.errorFlags, HEX);
+    Serial.println("========================================");
     last_display = millis();
   }
 #endif

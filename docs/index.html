@@ -217,50 +217,50 @@
             <div class="gauge" id="gClt">
                 <div class="gauge-label">Coolant</div>
                 <div class="gauge-value" id="vClt">0</div>
-                <div class="gauge-unit">°C</div>
+                <div class="gauge-unit">RAW</div>
             </div>
             <div class="gauge" id="gTps">
                 <div class="gauge-label">Throttle</div>
                 <div class="gauge-value" id="vTps">0</div>
-                <div class="gauge-unit">%</div>
+                <div class="gauge-unit">RAW</div>
             </div>
             <div class="gauge" id="gMap">
                 <div class="gauge-label">MAP</div>
-                <div class="gauge-value" id="vMap">0.00</div>
-                <div class="gauge-unit">BAR</div>
+                <div class="gauge-value" id="vMap">0</div>
+                <div class="gauge-unit">RAW</div>
             </div>
             <div class="gauge" id="gBattery">
                 <div class="gauge-label">Battery</div>
-                <div class="gauge-value" id="vBattery">0.0</div>
-                <div class="gauge-unit">V</div>
+                <div class="gauge-value" id="vBattery">0</div>
+                <div class="gauge-unit">RAW</div>
             </div>
             <div class="gauge" id="gAdvance">
                 <div class="gauge-label">Advance</div>
                 <div class="gauge-value" id="vAdvance">0</div>
-                <div class="gauge-unit">°</div>
+                <div class="gauge-unit">RAW</div>
             </div>
         </div>
 
         <div class="info-section">
             <div class="info-row">
-                <span class="info-label">IAT:</span>
-                <span class="info-value" id="vIat">0°C</span>
+                <span class="info-label">IAT (raw):</span>
+                <span class="info-value" id="vIat">0</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Pulse Width:</span>
-                <span class="info-value" id="vPw">0.00 ms</span>
+                <span class="info-label">Pulse Width (raw):</span>
+                <span class="info-value" id="vPw">0</span>
             </div>
             <div class="info-row">
-                <span class="info-label">AFR:</span>
-                <span class="info-value" id="vO2">0.00</span>
+                <span class="info-label">O2 (raw):</span>
+                <span class="info-value" id="vO2">0</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Boost Duty:</span>
-                <span class="info-value" id="vBoostDuty">0%</span>
+                <span class="info-label">Boost Duty (raw):</span>
+                <span class="info-value" id="vBoostDuty">0</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Boost Target:</span>
-                <span class="info-value" id="vBoostTarget">0.00 BAR</span>
+                <span class="info-label">Boost Target (raw):</span>
+                <span class="info-value" id="vBoostTarget">0</span>
             </div>
         </div>
 
@@ -367,22 +367,20 @@
                     }
                 }
 
-                // Update gauges
+                // Display RAW values from Speeduino (no conversions)
                 elements.vRpm.textContent = data.rpm || 0;
                 elements.vClt.textContent = data.clt || 0;
                 elements.vTps.textContent = data.tps || 0;
-                // Display MAP as gauge pressure (relative to 1.00 bar)
-                // data.map is absolute kPa from firmware
-                elements.vMap.textContent = (((data.map ?? 0) - 100) / 100).toFixed(2);
-                elements.vBattery.textContent = (data.battery || 0).toFixed(1);
+                elements.vMap.textContent = data.map || 0;
+                elements.vBattery.textContent = data.battery || 0;
                 elements.vAdvance.textContent = data.advance || 0;
 
-                // Update info
-                elements.vIat.textContent = (data.iat || 0) + '°C';
-                elements.vPw.textContent = (data.pulsewidth || 0).toFixed(2) + ' ms';
-                elements.vO2.textContent = (data.o2 || 0).toFixed(2);
-                elements.vBoostDuty.textContent = (data.boostDuty || 0) + '%';
-                elements.vBoostTarget.textContent = ((data.boostTarget || 0) / 100).toFixed(2) + ' BAR';
+                // Update info - RAW values
+                elements.vIat.textContent = data.iat || 0;
+                elements.vPw.textContent = data.pulsewidth || 0;
+                elements.vO2.textContent = data.o2 || 0;
+                elements.vBoostDuty.textContent = data.boostDuty || 0;
+                elements.vBoostTarget.textContent = data.boostTarget || 0;
 
                 // Check warnings
                 elements.gRpm.classList.toggle('warning', data.rpm >= (data.wrpm || 6800));
