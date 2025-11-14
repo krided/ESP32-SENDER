@@ -258,8 +258,10 @@ void sendBLEData() {
   // MAP: Sender compresses with >> 2 (divide by 4), so we multiply by 4
   // espnow_data_to_send.map = (uint8_t)(currentStatus.MAP >> 2);
   int map_kpa = espnow_data_received.map * 4;  // 18 * 4 = 72 kPa (close to 74 with rounding)
-  doc["map"] = map_kpa / 100.0;  // Convert to BAR: 72/100 = 0.72 bar
-  
+  float map_abs_bar = map_kpa / 100.0;
+  float map_gauge_bar = map_abs_bar - 1;
+  doc["map"] = map_gauge_bar;
+
   doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
   
   // Advance: Speeduino sends as int8_t (already in degrees, can be negative)
