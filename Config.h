@@ -16,20 +16,6 @@
 // ================= DEBUG CONFIGURATION =================
 #define DEBUG 0                             // Enable debug output to serial
 
-// ================= WEB SERVER CONFIGURATION =================
-#define WEB_SERVER_ENABLED 1                // Enable web server for iPhone access
-#define WEB_SERVER_PORT 80                  // HTTP port
-#define WEBSOCKET_ENABLED 1                 // Enable WebSocket for real-time data
-#define WEB_UPDATE_RATE 10                  // Web data update rate in Hz
-
-// iPhone Hotspot WiFi credentials
-#define WIFI_SSID "iPazdan"                  // Your iPhone hotspot name
-#define WIFI_PASSWORD "michal22"       // Your iPhone hotspot password
-#define WIFI_TIMEOUT 15000                  // WiFi connection timeout (ms)
-
-// mDNS hostname (access via http://HOSTNAME.local)
-#define MDNS_HOSTNAME "lysyze46"        // Change to your preferred name (no spaces, no .local)
-
 // ================= ESP INPUT CHANNELS =================
 // You can set default values or read from sensors/CAN/serial
 #define DEFAULT_ESPIN_VALUE 0               // Default value for ESPin channels
