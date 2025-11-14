@@ -371,7 +371,10 @@
                 elements.vRpm.textContent = data.rpm || 0;
                 elements.vClt.textContent = data.clt || 0;  // Already in °C
                 elements.vTps.textContent = (data.tps || 0).toFixed(1);  // %
-                elements.vMap.textContent = (data.map || 0).toFixed(2);  // BAR
+                // MAP: Convert from absolute BAR to gauge BAR (relative to 1.00 bar)
+                // 0.72 bar abs → -0.28 bar gauge, 1.50 bar abs → 0.50 bar gauge (boost)
+                const mapGauge = (data.map ?? 0) - 1.0;
+                elements.vMap.textContent = mapGauge.toFixed(2);  // Gauge BAR
                 elements.vBattery.textContent = (data.battery || 0).toFixed(1);  // V
                 elements.vAdvance.textContent = data.advance || 0;  // °
 
