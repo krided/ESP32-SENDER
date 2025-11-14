@@ -261,14 +261,14 @@ void sendBLEData() {
   if (tps_scaled > 100) tps_scaled = 100;
   doc["tps"] = tps_scaled;
   
-  // MAP is stored as signed value in uint8_t, convert and scale by 2
-  doc["map"] = (int16_t)((int8_t)espnow_data_received.map) * 2;
+  // MAP is stored as signed value in uint8_t (directly in kPa)
+  doc["map"] = (int8_t)espnow_data_received.map;
   doc["battery"] = espnow_data_received.battery / 10.0;
   doc["advance"] = (int8_t)(espnow_data_received.advance - 40);
   doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;
   doc["o2"] = espnow_data_received.o2 / 10.0;
   doc["boostDuty"] = (int8_t)espnow_data_received.boostDuty;
-  doc["boostTarget"] = (int16_t)((int8_t)espnow_data_received.boostTarget) * 2;
+  doc["boostTarget"] = (int8_t)espnow_data_received.boostTarget;
   
   // ESP-NOW connection status
   bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
@@ -317,7 +317,7 @@ void processReceivedData() {
       Serial.print(tps_scaled);
     }
     Serial.println(" %");
-    Serial.print("MAP: "); Serial.print((int16_t)((int8_t)espnow_data_received.map) * 2); Serial.println(" kPa");
+    Serial.print("MAP: "); Serial.print((int8_t)espnow_data_received.map); Serial.println(" kPa");
     Serial.print("Battery: "); Serial.print(espnow_data_received.battery / 10.0); Serial.println(" V");
     Serial.print("Advance: "); Serial.println(espnow_data_received.advance - 40);
     Serial.println("======================");
