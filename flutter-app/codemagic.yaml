@@ -1,0 +1,38 @@
+workflows:
+  ios_release:
+    name: iOS Release Build
+    instance_type: mac_mini_m1
+    working_directory: flutter-app
+    environment:
+      flutter: stable
+      xcode: latest
+      vars:
+        IOS_VERSION: 15.0
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter --version
+          flutter pub get
+      - name: Ensure iOS platform folder exists
+        script: |
+          if [ ! -d ios ]; then
+            flutter create .
+          fi
+      - name: Inject Bluetooth permissions into Info.plist
+        script: |
+          INFO_PLIST="ios/Runner/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string This app needs Bluetooth to connect to your E46 Speeduino engine monitor" "$INFO_PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :NSBluetoothPeripheralUsageDescription string This app needs Bluetooth to connect to your E46 Speeduino engine monitor" "$INFO_PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion $IOS_VERSION" "$INFO_PLIST" || true
+      - name: Build iOS .ipa (requires signing in UI)
+        script: |
+          flutter build ipa --release --no-tree-shake-icons
+    artifacts:
+      - flutter-app/build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your@email.here
+        notify:
+          success: true
+          failure: true
