@@ -11,7 +11,7 @@ Progressive Web App do monitorowania silnika przez Bluetooth Low Energy.
 4. Widzisz dane live (10 Hz)
 
 ### iPhone (Safari NIE działa, potrzebujesz Bluefy)
-1. Pobierz **Bluefy Browser** z App Store (~39 zł)
+1. Pobierz **Bluefy Browser** z App Store (~39 zł): https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055
 2. Otwórz w Bluefy: https://krided.github.io/ESP32-SENDER/
 3. Kliknij Connect → wybierz ESP32
 4. Opcjonalnie: Dodaj do ekranu głównego (wygląda jak apka)
@@ -52,7 +52,7 @@ npx http-server -S -p 8080
 
 **"Web Bluetooth not supported"**
 - Użyj Chrome/Edge/Opera (nie Safari, nie Firefox)
-- iPhone: tylko Bluefy Browser
+- iPhone: tylko Bluefy Browser (link powyżej)
 
 **"No devices found"**
 - Sprawdź czy ESP32 nadaje (Serial Monitor: "BLE server started")

@@ -302,14 +302,30 @@
             gAdvance: document.getElementById('gAdvance'),
         };
 
+        // Helpers
+        const isIOS = (() => {
+            const ua = window.navigator.userAgent;
+            const platform = window.navigator.platform;
+            const maxTP = window.navigator.maxTouchPoints || 0;
+            return /iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && maxTP > 1);
+        })();
+
+        function showUnsupportedNotice() {
+            elements.warningBox.classList.add('show');
+            elements.warningText.innerHTML =
+                'Web Bluetooth nie jest dostępny w tej przeglądarce.<br>' +
+                '<strong>Na komputerze</strong>: użyj Chrome / Edge / Opera.<br>' +
+                '<strong>Na iPhonie/iPadzie</strong>: użyj przeglądarki <a href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055" target="_blank" rel="noopener">Bluefy</a> (obsługa Web Bluetooth).';
+            elements.connectBtn.disabled = true;
+            // Make status explicit instead of vague "Waiting..."
+            const espnowText = isIOS ? 'Speeduino: Brak wsparcia Web Bluetooth w iOS' : 'Speeduino: Brak wsparcia Web Bluetooth';
+            const espnowTextEl = document.getElementById('espnowStatusText');
+            if (espnowTextEl) espnowTextEl.textContent = espnowText;
+        }
+
         // Check Web Bluetooth support
         if (!navigator.bluetooth) {
-            elements.warningBox.classList.add('show');
-            elements.warningText.innerHTML = 
-                'Web Bluetooth nie jest obsługiwany w tej przeglądarce.<br>' +
-                '<strong>Windows/Mac/Linux:</strong> Użyj Chrome, Edge lub Opera.<br>' +
-                '<strong>iPhone:</strong> Pobierz Bluefy Browser z App Store.';
-            elements.connectBtn.disabled = true;
+            showUnsupportedNotice();
         }
 
         elements.connectBtn.addEventListener('click', async () => {
