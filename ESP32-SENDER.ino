@@ -114,6 +114,10 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 Ticker bleUpdateTicker;
 
+// To improve compatibility with iOS/Bluefy (small MTU),
+// we send notifications in small chunks and reassemble on the client.
+#define BLE_CHUNK_SIZE 20
+
 // BLE UUIDs - używamy standardowych
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -262,12 +266,14 @@ void sendBLEData() {
     doc["iat"] = espnow_data_received.iat - 40;  // IAT offset: 26 - 40 = -14°C ✓
     doc["tps"] = espnow_data_received.tps / 2.0;  // TPS: 0-200 range / 2 = 0-100%: 86/2 = 43% ✓
     
-    // MAP: Sender compresses with >> 2 (divide by 4), so we multiply by 4
-    // espnow_data_to_send.map = (uint8_t)(currentStatus.MAP >> 2);
-    int map_kpa = espnow_data_received.map * 4;  // 18 * 4 = 72 kPa (close to 74 with rounding)
-    float map_abs_bar = map_kpa / 100.0;
-    float map_gauge_bar = map_abs_bar - 1;
-    doc["map"] = map_gauge_bar;
+    // MAP decoding for UI
+    // Interpret received field as signed gauge in kPa (int8) to match Speeduino "Boost" reading
+    // Example: -107 => -1.07 bar gauge
+    int16_t map_gauge_kpa = (int8_t)espnow_data_received.map; // preserve sign
+    float map_gauge_bar = map_gauge_kpa / 100.0f;
+    int map_abs_kpa = map_gauge_kpa + 100; // approximate absolute (sea-level assumption)
+    doc["map"] = map_gauge_bar;          // for display (bar, gauge)
+    doc["mapAbsKpa"] = map_abs_kpa;      // for thresholds (kPa absolute)
 
     doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
     
@@ -306,9 +312,15 @@ void sendBLEData() {
   
   String jsonString;
   serializeJson(doc, jsonString);
-  
-  pCharacteristic->setValue(jsonString.c_str());
-  pCharacteristic->notify();
+
+  // Notify in small chunks to avoid MTU truncation issues on iOS/Bluefy
+  const uint8_t *dataPtr = (const uint8_t*) jsonString.c_str();
+  size_t totalLen = jsonString.length();
+  for (size_t offset = 0; offset < totalLen; offset += BLE_CHUNK_SIZE) {
+    size_t chunkLen = (totalLen - offset) < BLE_CHUNK_SIZE ? (totalLen - offset) : BLE_CHUNK_SIZE;
+    pCharacteristic->setValue(dataPtr + offset, chunkLen);
+    pCharacteristic->notify();
+  }
 }
 
 // ================= DATA PROCESSING =================
