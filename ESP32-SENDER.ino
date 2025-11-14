@@ -261,8 +261,14 @@ void sendBLEData() {
   if (tps_scaled > 100) tps_scaled = 100;
   doc["tps"] = tps_scaled;
   
-  // MAP is stored as signed value in uint8_t (directly in kPa)
-  doc["map"] = (int8_t)espnow_data_received.map;
+  // Normalize MAP to absolute kPa
+  // If sender encoded gauge kPa in signed int8 (stored in uint8), recover absolute as 100 + signed
+  // If sender already provided absolute kPa in 0..255, keep as-is
+  {
+    int8_t map_signed = (int8_t)espnow_data_received.map;
+    int16_t map_kpa = (map_signed < 0) ? (100 + map_signed) : (int16_t)espnow_data_received.map;
+    doc["map"] = map_kpa; // absolute kPa for consistent UI logic
+  }
   doc["battery"] = espnow_data_received.battery / 10.0;
   doc["advance"] = (int8_t)(espnow_data_received.advance - 40);
   doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;
@@ -317,7 +323,12 @@ void processReceivedData() {
       Serial.print(tps_scaled);
     }
     Serial.println(" %");
-    Serial.print("MAP: "); Serial.print((int8_t)espnow_data_received.map); Serial.println(" kPa");
+    {
+      int8_t map_signed = (int8_t)espnow_data_received.map;
+      int16_t map_kpa = (map_signed < 0) ? (100 + map_signed) : (int16_t)espnow_data_received.map;
+      float map_bar_gauge = (map_kpa - 100) / 100.0f;
+      Serial.print("MAP: "); Serial.print(map_kpa); Serial.print(" kPa ( "); Serial.print(map_bar_gauge, 2); Serial.println(" bar )");
+    }
     Serial.print("Battery: "); Serial.print(espnow_data_received.battery / 10.0); Serial.println(" V");
     Serial.print("Advance: "); Serial.println(espnow_data_received.advance - 40);
     Serial.println("======================");
