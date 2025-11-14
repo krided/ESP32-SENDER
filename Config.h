@@ -14,7 +14,7 @@
 #define ESPNOW_RECEIVER_MAC {0x88, 0x57, 0x21, 0x79, 0xEC, 0xC4}  // Broadcast or specific MAC
 
 // ================= DEBUG CONFIGURATION =================
-#define DEBUG 0                             // Enable debug output to serial
+#define DEBUG 1                             // Enable debug output to serial
 
 // ================= ESP INPUT CHANNELS =================
 // You can set default values or read from sensors/CAN/serial

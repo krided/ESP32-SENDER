@@ -97,6 +97,10 @@ uint32_t packets_received = 0;
 uint32_t packets_sent = 0;
 uint32_t last_stats_time = 0;
 
+// ESP-NOW connection monitoring
+uint32_t last_espnow_packet_time = 0;
+#define ESPNOW_TIMEOUT_MS 3000  // 3 seconds without data = connection lost
+
 // END DATA
 #if SCREEN
 Adafruit_ST7789 tft = Adafruit_ST7789(&SPI, TFT_CS, TFT_DC, TFT_RST);
@@ -144,6 +148,7 @@ extern "C" void onESPNowDataReceived(const esp_now_recv_info *recv_info, const u
     memcpy(&espnow_data_received, incomingData, sizeof(espnow_data_recv_t));
     espnow_data_available = true;
     packets_received++;
+    last_espnow_packet_time = millis();
     
 #if DEBUG
     Serial.print("Received from: ");
@@ -263,6 +268,11 @@ void sendBLEData() {
   doc["o2"] = espnow_data_received.o2 / 10.0;
   doc["boostDuty"] = espnow_data_received.boostDuty;
   doc["boostTarget"] = espnow_data_received.boostTarget;
+  
+  // ESP-NOW connection status
+  bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
+  doc["espnowConnected"] = espnow_connected;
+  doc["packetsReceived"] = packets_received;
   
   // Add warning thresholds
   doc["wrpm"] = WRPM;

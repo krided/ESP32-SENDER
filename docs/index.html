@@ -194,6 +194,11 @@
                 <div class="status-dot" id="statusDot"></div>
                 <span id="statusText">Disconnected</span>
             </div>
+            <div class="status" style="margin-top: 5px; font-size: 0.85em;">
+                <div class="status-dot" id="espnowStatusDot"></div>
+                <span id="espnowStatusText">Speeduino: Waiting...</span>
+                <span id="packetsCount" style="margin-left: 10px; opacity: 0.7;"></span>
+            </div>
         </header>
 
         <button class="connect-btn" id="connectBtn">Connect to E46 Speeduino</button>
@@ -271,6 +276,7 @@
         let device = null;
         let characteristic = null;
         let connected = false;
+        let lastDataUpdate = 0;
 
         const elements = {
             connectBtn: document.getElementById('connectBtn'),
@@ -347,6 +353,19 @@
             try {
                 const text = new TextDecoder().decode(event.target.value);
                 const data = JSON.parse(text);
+                lastDataUpdate = Date.now();
+
+                // Update ESP-NOW status
+                if (data.espnowConnected !== undefined) {
+                    const espnowConnected = data.espnowConnected;
+                    elements.espnowStatusDot.classList.toggle('connected', espnowConnected);
+                    elements.espnowStatusText.textContent = espnowConnected ? 
+                        'Speeduino: Connected' : 'Speeduino: No Data';
+                    
+                    if (data.packetsReceived !== undefined) {
+                        elements.packetsCount.textContent = `📦 ${data.packetsReceived}`;
+                    }
+                }
 
                 // Update gauges
                 elements.vRpm.textContent = data.rpm || 0;
