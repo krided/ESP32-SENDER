@@ -22,16 +22,31 @@ jobs:
         with:
           channel: stable
 
-      - name: Flutter pub get
+      - name: Flutter tools check
         run: |
           flutter --version
+          dart --version
+          flutter doctor -v
+          flutter precache --ios
           flutter pub get
+
+      - name: Xcode & CocoaPods versions
+        run: |
+          xcodebuild -version
+          pod --version || true
 
       - name: Ensure iOS platform folder exists
         run: |
           if [ ! -d ios ]; then
             flutter create .
           fi
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod repo update
+          pod install
+          cd ..
 
       - name: Inject Bluetooth permissions into Info.plist
         run: |
@@ -40,9 +55,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSBluetoothPeripheralUsageDescription string This app needs Bluetooth to connect to your E46 Speeduino engine monitor" "$INFO_PLIST" || true
           /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.0" "$INFO_PLIST" || true
 
-      - name: Build iOS (no codesign)
+      - name: Build iOS (no codesign, verbose)
         run: |
-          flutter build ios --release --no-codesign
+          flutter clean
+          flutter build ios --release --no-codesign -v
 
       - name: Package unsigned .ipa
         run: |
