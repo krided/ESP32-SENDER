@@ -36,12 +36,12 @@ typedef struct {
   uint8_t clt;                  // Coolant temperature
   uint8_t iat;                  // Intake air temperature
   uint8_t tps;                  // Throttle position sensor
-  int16_t map;                  // Manifold absolute pressure (can be negative for vacuum)
+  uint8_t map;                  // Manifold absolute pressure (stored as signed in uint8)
   uint8_t battery;              // Battery voltage
   uint8_t o2;                   // Oxygen sensor
   uint8_t advance;              // Ignition advance
-  int8_t boostDuty;             // Boost duty (can be negative)
-  int16_t boostTarget;          // Boost target (can be negative for vacuum)
+  uint8_t boostDuty;            // Boost duty (stored as signed in uint8)
+  uint8_t boostTarget;          // Boost target (stored as signed in uint8)
   uint16_t canin_1;             // CAN input channel 1
   uint16_t canin_2;             // CAN input channel 2
   uint16_t canin_3;             // CAN input channel 3
@@ -261,13 +261,14 @@ void sendBLEData() {
   if (tps_scaled > 100) tps_scaled = 100;
   doc["tps"] = tps_scaled;
   
-  doc["map"] = espnow_data_received.map;
+  // MAP is stored as signed value in uint8_t, convert and scale by 2
+  doc["map"] = (int16_t)((int8_t)espnow_data_received.map) * 2;
   doc["battery"] = espnow_data_received.battery / 10.0;
   doc["advance"] = (int8_t)(espnow_data_received.advance - 40);
   doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;
   doc["o2"] = espnow_data_received.o2 / 10.0;
-  doc["boostDuty"] = espnow_data_received.boostDuty;
-  doc["boostTarget"] = espnow_data_received.boostTarget;
+  doc["boostDuty"] = (int8_t)espnow_data_received.boostDuty;
+  doc["boostTarget"] = (int16_t)((int8_t)espnow_data_received.boostTarget) * 2;
   
   // ESP-NOW connection status
   bool espnow_connected = (millis() - last_espnow_packet_time) < ESPNOW_TIMEOUT_MS;
@@ -316,7 +317,7 @@ void processReceivedData() {
       Serial.print(tps_scaled);
     }
     Serial.println(" %");
-    Serial.print("MAP: "); Serial.print(espnow_data_received.map); Serial.println(" kPa");
+    Serial.print("MAP: "); Serial.print((int16_t)((int8_t)espnow_data_received.map) * 2); Serial.println(" kPa");
     Serial.print("Battery: "); Serial.print(espnow_data_received.battery / 10.0); Serial.println(" V");
     Serial.print("Advance: "); Serial.println(espnow_data_received.advance - 40);
     Serial.println("======================");
