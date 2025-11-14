@@ -262,9 +262,9 @@ void sendBLEData() {
   
   doc["battery"] = espnow_data_received.battery / 10.0;  // battery10: /10 for volts
   
-  // Advance: Speeduino sends as int8_t (can be negative), stored in uint8_t
-  // currentStatus.advance is already in degrees from Speeduino
-  doc["advance"] = (int8_t)espnow_data_received.advance - 40;  // Cast to signed, then offset
+  // Advance: Speeduino sends as int8_t (already in degrees, can be negative)
+  // currentStatus.advance is copied directly, just cast to signed
+  doc["advance"] = (int8_t)espnow_data_received.advance;  // Cast to signed for negative values
   
   doc["pulsewidth"] = espnow_data_received.pulsewidth / 10.0;  // PW1: uint16 / 10 for ms
   doc["o2"] = espnow_data_received.o2 / 10.0;  // O2: /10 for AFR
