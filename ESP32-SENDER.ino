@@ -262,12 +262,10 @@ void sendBLEData() {
     doc["iat"] = espnow_data_received.iat - 40;  // IAT offset: 26 - 40 = -14°C ✓
     doc["tps"] = espnow_data_received.tps / 2.0;  // TPS: 0-200 range / 2 = 0-100%: 86/2 = 43% ✓
     
-    // MAP decoding for UI
-    // Interpret received field as signed gauge in kPa (int8) to match Speeduino "Boost" reading
-    // Example: -107 => -1.07 bar gauge
-    int16_t map_gauge_kpa = (int8_t)espnow_data_received.map; // preserve sign
-    float map_gauge_bar = map_gauge_kpa / 100.0f;
-    int map_abs_kpa = map_gauge_kpa + 100; // approximate absolute (sea-level assumption)
+    // MAP decoding: sender compresses with >> 2, so multiply by 4 to get absolute kPa
+    // Then subtract ~101 kPa (1 bar) to get gauge pressure
+    int map_abs_kpa = espnow_data_received.map * 4;  // Decompress: 18 * 4 = 72 kPa, 23 * 4 = 92 kPa
+    float map_gauge_bar = (map_abs_kpa - 101.0f) / 100.0f;  // Convert to gauge bar: (92-101)/100 = -0.09 bar
     doc["map"] = map_gauge_bar;          // for display (bar, gauge)
     doc["mapAbsKpa"] = map_abs_kpa;      // for thresholds (kPa absolute)
 
